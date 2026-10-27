@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting Pemilos - Dashboard Admin</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- Area Tersembunyi khusus Cetak Kartu DPT -->
+    <div id="print-area" class="hidden p-6 bg-white"></div>
+
+    <!-- Header Admin -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg font-bold">🔒</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">PANITIA PEMILOS ADMIN</h1>
+                    <p id="header-admin-school" class="text-xs text-slate-400">Dashboard Manajemen Sekolah</p>
+                </div>
+            </div>
+            <div id="admin-actions" class="hidden">
+                <button onclick="adminLogout()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md font-semibold transition">
+                    Logout Panitia
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- ADMIN LOGIN FORM -->
+        <section id="admin-login-sec" class="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-800 p-6 text-white text-center">
+                <h2 class="text-xl font-bold">Login Panitia Admin</h2>
+                <p class="text-xs text-slate-400 mt-1">Pilih Sekolah & Masukkan Kredensial Panitia</p>
+            </div>
+
+            <form onsubmit="return handleAdminLogin(event)" class="p-6 space-y-4">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">
+                        🏫 Pilih Sekolah Yang Dikelola
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="admin-sekolah-input" 
+                            class="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none" 
+                            placeholder="Ketik nama sekolah..." 
+                            oninput="filterAdminSekolah(this.value)"
+                            autocomplete="off" required>
+                        
+                        <div id="dropdown-admin-sekolah" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar z-50">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email / NIP Admin</label>
+                    <input type="text" id="admin-user" class="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none" placeholder="admin@smk.sch.id" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+                    <input type="password" id="admin-pass" class="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none" placeholder="••••••••" required>
+                </div>
+
+                <div id="admin-login-err" class="hidden text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200"></div>
+
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-lg">
+                    Masuk Dashboard Admin
+                </button>
+            </form>
+        </section>
+
+        <!-- ADMIN DASHBOARD -->
+        <section id="admin-dashboard-sec" class="hidden space-y-6">
+
+            <!-- BANNER PENGINGAT RESET DATA PEMILOS -->
+            <div id="banner-reset-warning" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-sm">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl">⚠️</span>
+                    <div>
+                        <h4 class="font-bold text-amber-900 text-sm">PENGINGAT DATA PEMILOS TERSEDIA</h4>
+                        <p class="text-xs text-amber-800 mt-0.5">
+                            Data kandidat, DPT, dan perolehan suara tersimpan di sistem. Jika kegiatan Pemilos sudah berakhir, silakan bersihkan data sebelum memulai periode baru.
+                        </p>
+                    </div>
+                </div>
+                <button onclick="resetSchoolData()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shrink-0">
+                    🗑️ Reset Data Pemilos Sekarang
+                </button>
+            </div>
+
+            <!-- CONTROLLER WAKTU VOTING -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">⏱️</span>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">Status Akses Bilik Suara</h4>
+                        <p id="voting-status-text" class="text-xs text-green-600 font-semibold">🟢 DIBUKA (Pemilih dapat mencoblos)</p>
+                    </div>
+                </div>
+                <button id="btn-toggle-voting" onclick="toggleVotingStatus()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+                    🔒 Tutup Pemungutan Suara
+                </button>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+                <button onclick="switchTab('tab-qc')" class="tab-btn bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition">📊 Quick Count & Partisipasi</button>
+                <button onclick="switchTab('tab-kandidat')" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition">👤 Kelola Paslon</button>
+                <button onclick="switchTab('tab-dpt')" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition">📋 Kelola DPT & Cetak Kartu</button>
+                <button onclick="switchTab('tab-sesi')" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition">🔑 Buka Kunci Akun</button>
+            </div>
+
+            <!-- TAB 1: QUICK COUNT & INDIKATOR PARTISIPASI -->
+            <div id="tab-qc" class="tab-content bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <!-- Stat Cards (Turnout Rate) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl">
+                        <span class="text-xs text-indigo-600 font-bold uppercase">Total DPT</span>
+                        <h3 id="stat-total-dpt" class="text-2xl font-extrabold text-indigo-900">0</h3>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 p-4 rounded-xl">
+                        <span class="text-xs text-green-600 font-bold uppercase">Sudah Memilih</span>
+                        <h3 id="stat-voted-dpt" class="text-2xl font-extrabold text-green-900">0 (0%)</h3>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                        <span class="text-xs text-amber-600 font-bold uppercase">Belum Memilih</span>
+                        <h3 id="stat-unvoted-dpt" class="text-2xl font-extrabold text-amber-900">0 (0%)</h3>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-2">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Hasil Suara Real-Time (Quick Count)</h3>
+                        <p id="qc-school-subtitle" class="text-xs text-indigo-600 font-semibold"></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
+                            🖨️ Cetak Laporan
+                        </button>
+                        <button onclick="resetSchoolData()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
+                            🗑️ Reset Data
+                        </button>
+                    </div>
+                </div>
+                <div class="max-w-md mx-auto">
+                    <canvas id="chartSuara"></canvas>
+                </div>
+            </div>
+
+            <!-- TAB 2: KELOLA KANDIDAT -->
+            <div id="tab-kandidat" class="tab-content hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-indigo-600 font-bold uppercase">Sekolah Sesi Ini</span>
+                        <h4 id="label-active-admin-school" class="font-bold text-indigo-900 text-base"></h4>
+                    </div>
+                    <span class="bg-indigo-200 text-indigo-800 text-xs px-3 py-1 rounded-full font-bold">🔒 Terkunci Per Sesi</span>
+                </div>
+
+                <h3 class="font-bold text-slate-800 text-lg pt-2">Tambah Paslon Baru</h3>
+                <form onsubmit="return addCandidate(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Nama Paslon (Ketua & Wakil)</label>
+                        <input type="text" id="cand-name" placeholder="Contoh: 01. Ahmad & Siti" class="w-full p-2.5 border rounded-xl text-sm" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">URL Foto Paslon (Opsional)</label>
+                        <input type="url" id="cand-photo" placeholder="https://domain.com/foto.jpg" class="w-full p-2.5 border rounded-xl text-sm">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Visi & Misi Lengkap</label>
+                        <textarea id="cand-visi" rows="3" placeholder="Visi, Misi, dan Program Kerja..." class="w-full p-2.5 border rounded-xl text-sm" required></textarea>
+                    </div>
+
+                    <button type="submit" class="md:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-bold transition">
+                        ➕ Simpan Paslon Ke Sekolah Ini
+                    </button>
+                </form>
+
+                <hr class="my-4">
+                <h4 class="font-bold text-slate-700 text-sm">Daftar Paslon Terdaftar di Sekolah Ini:</h4>
+                <div id="list-all-candidates" class="space-y-2 text-sm"></div>
+            </div>
+
+            <!-- TAB 3: KELOLA DPT & CETAK KARTU -->
+            <div id="tab-dpt" class="tab-content hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Kelola Data DPT Pemilih</h3>
+                        <p class="text-xs text-slate-500">Impor data absen sekaligus, kelola pemilih, atau cetak kartu login.</p>
+                    </div>
+                    <button onclick="printVoterCards()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shrink-0">
+                        🖨️ Cetak Kartu Pemilih
+                    </button>
+                </div>
+
+                <!-- IMPOR EXCEL & MANUAL -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl space-y-3">
+                        <h4 class="font-bold text-indigo-900 text-sm">1. Impor File Excel / CSV</h4>
+                        <input type="file" id="file-import-dpt" accept=".xlsx, .xls, .csv" class="block w-full text-xs text-slate-500 border rounded-xl bg-white p-1.5">
+                        <button onclick="handleDptImport()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-xl transition">
+                            📤 Unggah & Proses DPT
+                        </button>
+                    </div>
+
+                    <div class="border border-slate-200 p-4 rounded-2xl space-y-3 bg-slate-50">
+                        <h4 class="font-bold text-slate-800 text-sm">2. Tambah Pemilih Manual</h4>
+                        <form onsubmit="return addDptUser(event)" class="space-y-2">
+                            <input type="text" id="dpt-nisn" placeholder="NISN / NIP" class="w-full p-2 border rounded-xl text-xs bg-white" required>
+                            <input type="text" id="dpt-nama" placeholder="Nama Lengkap" class="w-full p-2 border rounded-xl text-xs bg-white" required>
+                            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-xl text-xs font-bold transition">
+                                ➕ Tambah Pemilih
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- SEARCH & FILTER DPT TABLE -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h4 class="font-bold text-slate-800 text-sm">Daftar DPT Terdaftar</h4>
+                        
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <!-- Filter Status -->
+                            <select id="filter-dpt-status" onchange="renderDptList()" class="p-2 border rounded-xl text-xs bg-white focus:outline-none">
+                                <option value="ALL">Semua Status</option>
+                                <option value="VOTED">Sudah Memilih</option>
+                                <option value="UNVOTED">Belum Memilih</option>
+                            </select>
+                            <!-- Search Bar -->
+                            <input type="text" id="search-dpt-input" oninput="renderDptList()" placeholder="Cari NISN / Nama..." class="p-2 border rounded-xl text-xs bg-white focus:outline-none w-full sm:w-48">
+                        </div>
+                    </div>
+
+                    <div class="max-h-60 overflow-y-auto border border-slate-200 rounded-xl custom-scrollbar">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0">
+                                <tr>
+                                    <th class="p-3">NISN / NIP</th>
+                                    <th class="p-3">Nama Pemilih</th>
+                                    <th class="p-3">Status Memilih</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-dpt-list" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: BUKA KUNCI AKUN -->
+            <div id="tab-sesi" class="tab-content hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="font-bold text-slate-800 text-lg">Reset Password & Buka Kunci Akun</h3>
+                <div id="list-locked-users" class="space-y-2"></div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

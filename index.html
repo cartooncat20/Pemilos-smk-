@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting Pemilos - Ruang Pemilih</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- Header App -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white text-indigo-700 p-2 rounded-lg font-bold text-xl">🗳️</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">PEMILOS ONLINE JOMBANG</h1>
+                    <p class="text-xs text-indigo-200">Sistem Pemilihan Ketua OSIS Serentak</p>
+                </div>
+            </div>
+            <a href="admin.html" class="text-xs bg-indigo-800 hover:bg-indigo-900 px-3 py-2 rounded-md font-semibold transition border border-indigo-600">
+                🔒 Ruang Admin
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 py-8">
+
+        <!-- STEP 1: FORM LOGIN & PILIH SEKOLAH -->
+        <section id="sec-login" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 text-white">
+                <h2 class="text-2xl font-bold">Selamat Datang Pemilih 👋</h2>
+                <p class="text-indigo-100 text-sm mt-1">Pilih sekolahmu di Jombang dan masuk menggunakan NISN/NIP.</p>
+            </div>
+
+            <form id="form-login" class="p-6 md:p-8 space-y-6" onsubmit="return handleVoterLogin(event)">
+                
+                <!-- Autocomplete Pencarian Sekolah -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        🏫 Pilih / Cari Sekolah (Kabupaten Jombang)
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="input-sekolah" 
+                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-800" 
+                            placeholder="Ketik nama sekolah (cth: SMK Dwija Bhakti / MAN 3...)" 
+                            oninput="filterSekolah(this.value)"
+                            autocomplete="off" required>
+                        
+                        <div id="dropdown-sekolah" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-56 overflow-y-auto custom-scrollbar z-50">
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1.5">
+                        💡 Pilih sekolah sesuai lokasi pendaftaran NISN/NIP milikmu.
+                    </p>
+                </div>
+
+                <!-- Input NISN & Password -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            👤 NISN (Siswa) / NIP (Guru)
+                        </label>
+                        <input type="text" id="input-nisn" 
+                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                            placeholder="Masukkan NISN / NIP" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            🔑 Password
+                        </label>
+                        <input type="password" id="input-password" 
+                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                            placeholder="Default = NISN/NIP" required>
+                    </div>
+                </div>
+
+                <!-- Alert Error -->
+                <div id="login-error" class="hidden p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-xl"></div>
+
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-lg">
+                    Masuk ke Bilik Suara 🗳️
+                </button>
+            </form>
+        </section>
+
+        <!-- STEP 2: BILIK SUARA -->
+        <section id="sec-bilik" class="hidden space-y-6">
+            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-bold text-indigo-600 uppercase">Pemilih Aktif</span>
+                    <h3 id="user-info" class="font-bold text-slate-800 text-lg">Nama Pemilih - Sekolah</h3>
+                </div>
+                <span class="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full border border-green-300">
+                    🟢 Sesi Aktif
+                </span>
+            </div>
+
+            <div class="text-center my-6">
+                <h2 class="text-2xl font-bold text-slate-800">Surat Suara Pemilihan Ketua OSIS</h2>
+                <p class="text-slate-500 text-sm">Pilihlah pasangan kandidat di bawah ini dengan bijak.</p>
+            </div>
+
+            <!-- List Paslon Khusus Sekolah Pemilih -->
+            <div id="container-kandidat" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+
+        <!-- STEP 3: HALAMAN TERIMA KASIH -->
+        <section id="sec-thanks" class="hidden bg-white p-8 rounded-2xl shadow-xl text-center space-y-4 border border-slate-200">
+            <div class="text-6xl animate-bounce">🎉</div>
+            <h2 class="text-3xl font-bold text-slate-800">Suara Anda Telah Terrekam!</h2>
+            <p class="text-slate-600 max-w-md mx-auto">
+                Terima kasih telah berpartisipasi dalam Pemilos.
+            </p>
+            <div class="pt-4">
+                <button onclick="logoutVoter()" class="bg-slate-800 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-900 transition">
+                    Kembali ke Halaman Utama
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Detail Visi & Misi -->
+    <div id="modal-detail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
+            <h3 id="modal-detail-title" class="text-xl font-bold text-slate-800">Detail Paslon</h3>
+            <div id="modal-detail-content" class="text-sm text-slate-600 space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-slate-50 p-4 rounded-xl border"></div>
+            <button onclick="closeDetailModal()" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 rounded-xl font-semibold text-sm transition">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Pencoblosan -->
+    <div id="modal-coblos" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <h3 class="text-xl font-bold text-slate-800">Konfirmasi Pencoblosan</h3>
+            <p id="modal-text" class="text-sm text-slate-600">Apakah Anda yakin memilih kandidat ini?</p>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl font-semibold text-sm transition">
+                    Batal
+                </button>
+                <button id="btn-confirm-vote" onclick="executeVote()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-semibold text-sm transition">
+                    Ya, Yakin!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
